@@ -1,4 +1,5 @@
-name: KSU-NO-Kernel
+# KSU Kernel Build Workflow
+name: KSU-NO
 
 on:
   pull_request:
@@ -72,11 +73,26 @@ on:
         required: false
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set build matrix
+        id: set-matrix
+        run: |
+          if [ "${{ github.event.inputs.CODENAME }}" == "all" ]; then
+            echo "matrix=[\"alioth\", \"apollo\", \"munch\"]" >> $GITHUB_OUTPUT
+          else
+            echo "matrix=[\"${{ github.event.inputs.CODENAME }}\"]" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: setup
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        device: ${{ github.event.inputs.CODENAME == 'all' && fromJson('["alioth", "apollo", "munch"]') || fromJson(format('["{0}"]', github.event.inputs.CODENAME)) }}
+        device: ${{ fromJson(needs.setup.outputs.matrix) }}
     env:
       UPLOAD_TO_RELEASE: false
 
@@ -120,7 +136,7 @@ jobs:
           elif [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs" ]]; then
             echo "SuSFS_ENABLE=1" >> $GITHUB_ENV
             echo "KPM_ENABLE=0" >> $GITHUB_ENV
-          elif [[ "${{ github.event.inputs.ADDITIONAL }}" == "kpm" ]]; then
+          elif [[ "${{ github.event.inputs.ADDITIONAL }}" == "kmp" ]]; then
             echo "SuSFS_ENABLE=0" >> $GITHUB_ENV
             echo "KPM_ENABLE=1" >> $GITHUB_ENV
           else
@@ -383,12 +399,12 @@ jobs:
             dtbo.img
 
   package_anykernel:
-    needs: build
+    needs: [setup, build]
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.ANYKERNEL_URL != '' }}
     strategy:
       matrix:
-        device: ${{ github.event.inputs.CODENAME == 'all' && fromJson('["alioth", "apollo", "munch"]') || fromJson(format('["{0}"]', github.event.inputs.CODENAME)) }}
+        device: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Set Environment Variables
@@ -514,40 +530,4 @@ jobs:
       - name: Upload Kernel to Telegram
         if: ${{ github.event.inputs.UPLOAD_TO_TELEGRAM == 'yes' }}
         run: |
-          BUILD_TITLE="${{ github.event.inputs.BUILD_TITLE }}"
-          if [ -z "$BUILD_TITLE" ]; then
-            BUILD_TITLE="${{ env.ZIP_NAME }}"
-          fi
-          
-          # Device name mapping
-          case "${{ matrix.device }}" in
-            "alioth")
-              DEVICE_NAME="Redmi K40 / POCO F3"
-              ;;
-            "apollo") 
-              DEVICE_NAME="Xiaomi Mi 10T / Mi 10T Pro"
-              ;;
-            "munch")
-              DEVICE_NAME="POCO F4"
-              ;;
-            *)
-              DEVICE_NAME="${{ matrix.device }}"
-              ;;
-          esac
-          
-          CAPTION="🔧 **N0Kernel v${{ github.event.inputs.KERNEL_VERSION }}** 🔧
-
-📱 **Device:** ${{ matrix.device }} ($DEVICE_NAME)
-📋 **Version:** ${{ github.event.inputs.KERNEL_VERSION }}
-🔐 **KernelSU:** ${{ github.event.inputs.KSU_VERSION }}
-⚙️ **Features:** ${{ github.event.inputs.ADDITIONAL }}
-🌿 **Branch:** ${{ github.event.inputs.KERNEL_TREE_BRANCH_1 }}
-📦 **File:** ${{ env.ZIP_NAME }}.zip
-
-🚀 Build completed successfully!"
-
-          curl -F chat_id=${{ secrets.TG_CHAT_ID }} \
-               -F document=@${{ env.ZIP_NAME }}.zip \
-               -F caption="$CAPTION" \
-               -F parse_mode="Markdown" \
-               "https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendDocument"
+          BUILD_TITLE="${{ github.event.inputs.BUILD_
