@@ -1,4 +1,4 @@
-name: N0 with different ksu versions
+name: KSU-NO-Kernel
 
 on:
   pull_request:
