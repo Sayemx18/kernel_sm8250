@@ -389,35 +389,7 @@ jobs:
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             -j$(nproc --all)
-
-      - name: Apply KPM Patch
-        run: |
-          cd kernel_tree
-          
-          # Check if build was successful
-          if [ -f "out/arch/arm64/boot/Image.gz" ]; then
-              echo "Build successful: Image.gz found"
-          else
-              echo "Build failed: Image.gz not found"
-              exit 1
-          fi
-          
-          # Apply KPM patch if needed
-          if [[ "$KPM_ENABLE" -eq 1 && "${{ github.event.inputs.KSU_VERSION }}" == "sukisu-ultra" ]]; then
-              echo "Applying KPM patch..."
-              cd out/arch/arm64/boot
-              curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU_patch/refs/heads/main/kmp/patch_linux" -o patch
-              chmod +x patch
-              ./patch
-              if [ $? -eq 0 ]; then
-                  rm -f Image
-                  mv oImage Image
-                  echo "KPM patch applied successfully"
-              else
-                  echo "KPM Patch Failed, using original Image"
-              fi
-          fi
-
+      
       - name: AnyKernel3
         if: success()
         run: |
