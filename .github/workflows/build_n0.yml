@@ -107,7 +107,17 @@ jobs:
         with:
           key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.device }}
 
+      - name: Cache Clang Toolchain
+        id: clang-cache
+        uses: actions/cache@v4
+        with:
+          path: clang
+          key: neutron-clang-10032024
+          restore-keys: |
+            neutron-clang-
+      
       - name: Download & Extract Clang
+        if: steps.clang-cache.outputs.cache-hit != 'true'
         run: |
           wget https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/10032024/neutron-clang-10032024.tar.zst -O clang.tar.zst
           mkdir clang
