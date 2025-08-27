@@ -51,8 +51,6 @@ on:
         options:
           - 'none'
           - 'susfs'
-          - 'kpm'
-          - 'susfs-kpm'
         default: 'none'
         required: false
       UPLOAD_TO_TELEGRAM:
@@ -140,18 +138,10 @@ jobs:
             echo "KSU_ENABLE=0" >> $GITHUB_ENV
           fi
           
-          if [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs-kpm" ]]; then
+          if [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs" ]]; then
             echo "SuSFS_ENABLE=1" >> $GITHUB_ENV
-            echo "KPM_ENABLE=1" >> $GITHUB_ENV
-          elif [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs" ]]; then
-            echo "SuSFS_ENABLE=1" >> $GITHUB_ENV
-            echo "KPM_ENABLE=0" >> $GITHUB_ENV
-          elif [[ "${{ github.event.inputs.ADDITIONAL }}" == "kpm" ]]; then
-            echo "SuSFS_ENABLE=0" >> $GITHUB_ENV
-            echo "KPM_ENABLE=1" >> $GITHUB_ENV
           else
             echo "SuSFS_ENABLE=0" >> $GITHUB_ENV
-            echo "KPM_ENABLE=0" >> $GITHUB_ENV
           fi
           
           # Set KSU ZIP string
@@ -160,21 +150,21 @@ jobs:
               echo "KSU_ZIP_STR=KernelSU" >> $GITHUB_ENV
               ;;
             "rksu")
-              if [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs"* ]]; then
+              if [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs" ]]; then
                 echo "KSU_ZIP_STR=RKSU_SuSFS" >> $GITHUB_ENV
               else
                 echo "KSU_ZIP_STR=RKSU" >> $GITHUB_ENV
               fi
               ;;
             "sukisu")
-              if [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs"* ]]; then
+              if [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs" ]]; then
                 echo "KSU_ZIP_STR=SukiSU_SuSFS" >> $GITHUB_ENV
               else
                 echo "KSU_ZIP_STR=SukiSU" >> $GITHUB_ENV
               fi
               ;;
             "sukisu-ultra")
-              if [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs"* ]]; then
+              if [[ "${{ github.event.inputs.ADDITIONAL }}" == "susfs" ]]; then
                 echo "KSU_ZIP_STR=SukiSU-Ultra_SuSFS" >> $GITHUB_ENV
               else
                 echo "KSU_ZIP_STR=SukiSU-Ultra" >> $GITHUB_ENV
@@ -278,7 +268,7 @@ jobs:
           # Build kernel config
           make O=out vendor/${{ matrix.device }}_defconfig
           
-          # Configure KSU and additional features
+          # Configure KSU
           if [ "$KSU_ENABLE" -eq 1 ]; then
               # Check if KernelSU was properly set up before enabling it
               if [[ -f "drivers/kernelsu/Kconfig" ]] || [[ -d "KernelSU" ]]; then
@@ -305,21 +295,6 @@ jobs:
               fi
           else
               echo "KSU_MANUAL_HOOK not needed for ${{ github.event.inputs.KSU_VERSION }}"
-          fi
-
-          # Configure KPM
-          if [ "$KPM_ENABLE" -eq 1 ]; then
-              scripts/config --file out/.config \
-                  -e KPM \
-                  -e KALLSYMS \
-                  -e KALLSYMS_ALL
-              echo "KPM features enabled"
-          else 
-              scripts/config --file out/.config \
-                  -d KPM \
-                  -d KALLSYMS \
-                  -d KALLSYMS_ALL
-              echo "KPM features disabled"
           fi
 
           # Configure SuSFS
@@ -389,7 +364,19 @@ jobs:
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             -j$(nproc --all)
-      
+
+      - name: Verify Build
+        run: |
+          cd kernel_tree
+          
+          # Check if build was successful
+          if [ -f "out/arch/arm64/boot/Image.gz" ]; then
+              echo "Build successful: Image.gz found"
+          else
+              echo "Build failed: Image.gz not found"
+              exit 1
+          fi
+
       - name: AnyKernel3
         if: success()
         run: |
