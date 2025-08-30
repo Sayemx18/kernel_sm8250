@@ -455,12 +455,12 @@ jobs:
           CAPTION="N0Kernel build completed 
           
           Device: ${{ matrix.device }}
-          File: $FILE"
+          File: $FILE
           Version: ${{ github.event.inputs.KERNEL_VERSION }}
           Build ID: ${{ github.run_id }}
           KernelSU: SukiSU
           Kernel Tree: https://github.com/EmanuelCN/kernel_xiaomi_sm8250
-          GitHub Action: https://github.com/Sayemx18/kernel_sm8250/blob/base/.github/workflows/build_n0.yml
+          GitHub Action: https://github.com/Sayemx18/kernel_sm8250/blob/base/.github/workflows/build_n0.yml"
 
           curl -F chat_id=${{ secrets.TG_CHAT_ID }} \
           -F document=@kernel_tree/out/arch/arm64/boot/$FILE \
