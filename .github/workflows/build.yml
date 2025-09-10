@@ -444,7 +444,7 @@ jobs:
 
             ## Source References
             - **Kernel Tree:** https://github.com/EmanuelCN/kernel_xiaomi_sm8250
-            - **GitHub Action:** https://github.com/Sayemx18/kernel_sm8250/blob/base/.github/workflows/build_n0.yml
+            - **GitHub Action:** https://github.com/Sayemx18/kernel_sm8250/blob/base/.github/workflows/build.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
